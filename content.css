@@ -1,0 +1,10 @@
+/* DownloadGuard content.css */
+#dg-banner .dg-banner-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+#dg-banner .dg-banner-left   { display:flex; align-items:flex-start; gap:10px; flex:1; }
+#dg-banner .dg-icon           { font-size:20px; flex-shrink:0; margin-top:2px; }
+#dg-banner .dg-banner-title   { font-weight:700; font-size:13px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+#dg-banner .dg-score-badge    { color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+#dg-banner .dg-banner-verdict { font-size:12px; color:#444; margin-top:3px; }
+#dg-banner .dg-banner-right   { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+#dg-banner .dg-btn            { border:none; background:rgba(0,0,0,0.08); color:#333; padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; font-family:inherit; }
+#dg-banner .dg-btn:hover      { background:rgba(0,0,0,0.15); }

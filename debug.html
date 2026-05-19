@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>DownloadGuard Debug</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #e6edf3; font-family: 'Courier New', monospace; padding: 24px; }
+    h1 { font-size: 16px; color: #58a6ff; margin-bottom: 20px; }
+    .log { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 16px; min-height: 200px; max-height: 400px; overflow-y: auto; font-size: 12px; line-height: 1.8; }
+    .log-entry { padding: 2px 0; border-bottom: 1px solid #21262d; }
+    .log-entry.ok   { color: #22c55e; }
+    .log-entry.err  { color: #ff4444; }
+    .log-entry.warn { color: #f97316; }
+    .log-entry.info { color: #58a6ff; }
+    .log-entry.dim  { color: #8b949e; }
+    .btn { background: #238636; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 13px; cursor: pointer; margin-right: 8px; margin-bottom: 8px; font-family: inherit; }
+    .btn:hover { background: #2ea043; }
+    .btn.red { background: #b91c1c; }
+    .btn.red:hover { background: #dc2626; }
+    .btn.blue { background: #1d4ed8; }
+    .btn.blue:hover { background: #2563eb; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .result-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    .sep { height: 1px; background: #30363d; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ DownloadGuard — Debug Console</h1>
+
+  <div class="section">
+    <div class="section-title">1. Extension Status</div>
+    <button class="btn blue" id="checkExtension">Check Extension</button>
+    <button class="btn blue" id="checkKeys">Check Saved Keys</button>
+    <button class="btn blue" id="checkStorage">Check All Storage</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Manual Download Test</div>
+    <button class="btn" id="testExe">Download test.exe</button>
+    <button class="btn" id="testMasq">Download movie.mp4.exe (masquerade)</button>
+    <button class="btn" id="testSafe">Download safe.pdf</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Manual Spam Test</div>
+    <button class="btn blue" id="testSpam">Run Local Spam Scan</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Clear</div>
+    <button class="btn red" id="clearLog">Clear Log</button>
+    <button class="btn red" id="clearStorage">Clear All Storage</button>
+  </div>
+
+  <div class="sep"></div>
+  <div class="section-title">Log Output</div>
+  <div class="log" id="log"></div>
+
+  <div class="sep"></div>
+  <div class="section-title">Raw Result</div>
+  <div class="result-box" id="result">Click a button above to see results...</div>
+
+  <script>
+    function log(msg, type = 'info') {
+      const el = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(entry);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function result(data) {
+      document.getElementById('result').textContent =
+        typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+    }
+
+    // Check extension is running
+    document.getElementById('checkExtension').addEventListener('click', () => {
+      log('Checking extension context...', 'info');
+      try {
+        if (typeof chrome === 'undefined') {
+          log('❌ chrome object not found — not running as extension page', 'err');
+          return;
+        }
+        log('✅ chrome object found', 'ok');
+
+        if (chrome.runtime?.id) {
+          log(`✅ Extension ID: ${chrome.runtime.id}`, 'ok');
+        } else {
+          log('❌ No extension ID — extension may not be loaded', 'err');
+        }
+
+        chrome.runtime.sendMessage({ action: 'GET_STATS' }, (res) => {
+          if (chrome.runtime.lastError) {
+            log(`❌ Background error: ${chrome.runtime.lastError.message}`, 'err');
+            log('→ Try: go to chrome://extensions and click Reload on DownloadGuard', 'warn');
+            result({ error: chrome.runtime.lastError.message });
+            return;
+          }
+          if (!res) {
+            log('❌ Background returned null — service worker may be sleeping', 'err');
+            log('→ Try: reload the extension at chrome://extensions', 'warn');
+            return;
+          }
+          log(`✅ Background responding — Stats: threats=${res.threats}, masquerade=${res.masquerade}, phishing=${res.phishing}`, 'ok');
+          result(res);
+        });
+      } catch(e) {
+        log(`❌ Exception: ${e.message}`, 'err');
+      }
+    });
+
+    // Check saved keys
+    document.getElementById('checkKeys').addEventListener('click', () => {
+      log('Reading keys from storage...', 'info');
+      chrome.storage.local.get(['dg_gemini_key', 'dg_vt_key', 'dg_allowed_domains'], (stored) => {
+        if (chrome.runtime.lastError) {
+          log(`❌ Storage error: ${chrome.runtime.lastError.message}`, 'err');
+          return;
+        }
+        const g = stored['dg_gemini_key'];
+        const v = stored['dg_vt_key'];
+        const d = stored['dg_allowed_domains'];
+
+        if (g) log(`✅ Gemini key: ${g.slice(0,6)}••••${g.slice(-4)} (${g.length} chars)`, 'ok');
+        else   log('⬜ No Gemini key saved', 'warn');
+
+        if (v) log(`✅ VT key: ${v.slice(0,6)}••••${v.slice(-4)} (${v.length} chars)`, 'ok');
+        else   log('⬜ No VT key saved', 'warn');
+
+        if (d?.length) log(`✅ Allowed domains: ${d.join(', ')}`, 'ok');
+        else           log('⬜ No allowed domains (Allow not clicked for any email site)', 'warn');
+
+        result({ geminiKey: g ? `${g.slice(0,6)}...${g.slice(-4)} (${g.length} chars)` : null, vtKey: v ? `${v.slice(0,6)}...${v.slice(-4)} (${v.length} chars)` : null, allowedDomains: d });
+      });
+    });
+
+    // Check all storage
+    document.getElementById('checkStorage').addEventListener('click', () => {
+      log('Dumping all storage...', 'info');
+      chrome.storage.session.get(null, (session) => {
+        chrome.storage.local.get(null, (local) => {
+          const localSafe = {};
+          for (const [k,v] of Object.entries(local)) {
+            localSafe[k] = typeof v === 'string' && v.length > 20 ? v.slice(0,6) + '...' + v.slice(-4) : v;
+          }
+          log(`Session keys: ${Object.keys(session).join(', ') || 'none'}`, 'dim');
+          log(`Local keys: ${Object.keys(local).join(', ') || 'none'}`, 'dim');
+          result({ session, local: localSafe });
+        });
+      });
+    });
+
+    // Test downloads
+    document.getElementById('testExe').addEventListener('click', () => {
+      log('Creating download: test.exe', 'info');
+      log('→ Watch for DownloadGuard warning page to open...', 'dim');
+      const a = document.createElement('a');
+      a.href = 'data:application/octet-stream;base64,TVqQAAMAAAAEAAAA';
+      a.download = 'test.exe';
+      a.click();
+      setTimeout(() => {
+        chrome.runtime.sendMessage({ action: 'GET_STATS' }, (res) => {
+          if (res) log(`Stats after download: threats=${res.threats}`, res.threats > 0 ? 'ok' : 'warn');
+        });
+      }, 2000);
+    });
+
+    document.getElementById('testMasq').addEventListener('click', () => {
+      log('Creating download: movie.mp4.exe (masquerade test)', 'info');
+      log('→ Expected: CRITICAL — masquerading detected', 'dim');
+      const a = document.createElement('a');
+      a.href = 'data:application/octet-stream;base64,TVqQAAMAAAAEAAAA';
+      a.download = 'movie.mp4.exe';
+      a.click();
+    });
+
+    document.getElementById('testSafe').addEventListener('click', () => {
+      log('Creating download: safe.pdf', 'info');
+      log('→ Expected: NO warning', 'dim');
+      const a = document.createElement('a');
+      a.href = 'data:application/octet-stream;base64,JVBERi0xLjQ=';
+      a.download = 'safe.pdf';
+      a.click();
+    });
+
+    // Manual spam test
+    document.getElementById('testSpam').addEventListener('click', () => {
+      const testEmail = {
+        subject: 'Urgent: Your Account Has Been Suspended — Verify Now',
+        senderName: 'Google Security Team',
+        senderEmail: 'security@g00gle-accounts.com',
+        body: 'Dear Valued Customer, We have detected unusual activity. Your account will be deleted within 24 hours. Click here to verify your password immediately. Urgent action required.',
+        links: ['http://google-account-verify.suspicious-login.net/restore']
+      };
+      log('Running local spam scan on test phishing email...', 'info');
+      chrome.runtime.sendMessage({ action: 'ANALYSE_PHISHING', emailData: testEmail }, (res) => {
+        if (chrome.runtime.lastError) {
+          log(`❌ Error: ${chrome.runtime.lastError.message}`, 'err');
+          return;
+        }
+        if (!res?.success) {
+          log(`❌ Scan failed: ${res?.error}`, 'err');
+          result(res);
+          return;
+        }
+        const r = res.result;
+        log(`Result: ${r.riskLevel} (${r.riskScore}/100) — ${r.threatType}`, r.riskLevel === 'LOW' ? 'warn' : 'ok');
+        log(`Verdict: ${r.verdict}`, 'info');
+        log(`Method: ${r.detectionMethod}`, 'dim');
+        log(`Indicators (${r.indicators?.length}): ${r.indicators?.slice(0,3).join(' | ')}`, 'dim');
+        result(r);
+      });
+    });
+
+    document.getElementById('clearLog').addEventListener('click', () => {
+      document.getElementById('log').innerHTML = '';
+    });
+
+    document.getElementById('clearStorage').addEventListener('click', () => {
+      chrome.storage.session.clear(() => {
+        chrome.storage.local.clear(() => {
+          log('✅ All storage cleared', 'ok');
+        });
+      });
+    });
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      log('Debug console loaded', 'dim');
+      if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
+        log('⚠️ Not running as an extension page — open this via chrome-extension:// URL', 'err');
+        log('→ Go to chrome://extensions → DownloadGuard → click "Service Worker" link', 'warn');
+      } else {
+        log('Extension context confirmed — run checks above', 'ok');
+      }
+    });
+  </script>
+</body>
+</html>
