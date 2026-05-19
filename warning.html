@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DownloadGuard — Security Warning</title>
+  <style>
+    :root {
+      --red:     #e74c3c;
+      --red-dark:#c0392b;
+      --orange:  #e67e22;
+      --green:   #27ae60;
+      --navy:    #1a2340;
+      --navy2:   #243058;
+      --slate:   #2d3a5a;
+      --light:   #eaf0fb;
+      --white:   #ffffff;
+      --grey:    #8892a4;
+      --text:    #1a2340;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4fc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 30px 20px;
+    }
+
+    /* ── Header ── */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: var(--navy);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .brand-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: 0.5px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--grey);
+      font-weight: 400;
+    }
+
+    /* ── Main card ── */
+    .card {
+      background: var(--white);
+      border-radius: 16px;
+      box-shadow: 0 4px 32px rgba(26,35,64,0.12);
+      max-width: 680px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* ── Alert banner ── */
+    .alert-banner {
+      background: var(--red);
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .alert-banner.HIGH { background: var(--orange); }
+    .alert-banner.MEDIUM { background: #7f8c8d; }
+
+    .alert-icon { font-size: 36px; flex-shrink: 0; }
+    .alert-title {
+      color: var(--white);
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .alert-subtitle {
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    /* ── Body ── */
+    .card-body { padding: 28px; }
+
+    /* ── Masquerade highlight box ── */
+    .masq-box {
+      background: #fff5f5;
+      border: 2px solid var(--red);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .masq-box .masq-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--red);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .masq-flow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .masq-pill {
+      background: var(--light);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .masq-pill.danger { background: #fdecea; color: var(--red); }
+    .masq-arrow { color: var(--grey); font-size: 18px; }
+
+    /* ── Info rows ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .info-item {
+      background: var(--light);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .info-item label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--grey);
+      letter-spacing: 0.8px;
+    }
+    .info-item .val {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 3px;
+      word-break: break-all;
+    }
+
+    /* ── VT Section ── */
+    .vt-section {
+      border: 1px solid #dde4f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .vt-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .vt-logo {
+      font-size: 22px;
+    }
+    .vt-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .vt-desc {
+      font-size: 12px;
+      color: var(--grey);
+    }
+
+    .api-key-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .api-key-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #dde4f0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border 0.2s;
+    }
+    .api-key-row input:focus { border-color: var(--navy); }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .btn-vt {
+      background: #394f9c;
+      color: var(--white);
+    }
+    .btn-vt:hover { background: #2d3f7e; }
+    .btn-vt:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .vt-note {
+      font-size: 11px;
+      color: var(--grey);
+      margin-top: 6px;
+    }
+    .vt-note a { color: #394f9c; text-decoration: none; }
+
+    /* ── VT Results ── */
+    #vtResults { display: none; margin-top: 14px; }
+
+    .vt-score-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .vt-score-big {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .vt-score-big.danger { color: var(--red); }
+    .vt-score-big.warn   { color: var(--orange); }
+    .vt-score-big.safe   { color: var(--green); }
+
+    .vt-score-label {
+      font-size: 13px;
+      color: var(--grey);
+    }
+    .vt-score-label strong { color: var(--text); }
+
+    .stat-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .stat-pill {
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .pill-red    { background: #fdecea; color: var(--red); }
+    .pill-orange { background: #fef3e2; color: var(--orange); }
+    .pill-green  { background: #eafaf1; color: var(--green); }
+    .pill-grey   { background: var(--light); color: var(--grey); }
+
+    .flagged-list {
+      background: #fdecea;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 10px;
+    }
+    .flagged-list-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+    .flagged-engine {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(231,76,60,0.15);
+      color: var(--text);
+    }
+    .flagged-engine:last-child { border-bottom: none; }
+    .engine-verdict { color: var(--red); font-weight: 600; }
+
+    .vt-clean {
+      background: #eafaf1;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    #vtSpinner { display: none; text-align: center; padding: 20px; color: var(--grey); font-size: 13px; }
+    #vtError { display: none; background: #fff5f5; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--red); margin-top: 10px; }
+
+    /* ── Action buttons ── */
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+    .btn-cancel {
+      flex: 1;
+      background: var(--red);
+      color: var(--white);
+      justify-content: center;
+      font-size: 14px;
+      padding: 14px;
+    }
+    .btn-cancel:hover { background: var(--red-dark); }
+    .btn-allow {
+      flex: 1;
+      background: var(--light);
+      color: var(--navy);
+      justify-content: center;
+      font-size: 14px;
+      padding: 14px;
+      border: 1px solid #dde4f0;
+    }
+    .btn-allow:hover { background: #d5e0f5; }
+
+    .action-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--grey);
+      margin-top: 10px;
+    }
+
+    /* ── Loading state ── */
+    #loadingState {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--grey);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <div class="brand-icon">🛡️</div>
+    <div>
+      <div class="brand-name">DownloadGuard</div>
+      <div class="brand-sub">CI7526 Security Artefact · Kingston University</div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- Alert Banner — populated by JS -->
+    <div class="alert-banner" id="alertBanner">
+      <div class="alert-icon" id="alertIcon">⚠️</div>
+      <div>
+        <div class="alert-title" id="alertTitle">Analysing download...</div>
+        <div class="alert-subtitle" id="alertSubtitle">Please wait</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Loading -->
+      <div id="loadingState">Loading threat data...</div>
+
+      <!-- Main content — hidden until data loads -->
+      <div id="mainContent" style="display:none">
+
+        <!-- Masquerading highlight (shown only if masquerading detected) -->
+        <div class="masq-box" id="masqBox" style="display:none">
+          <div class="masq-label">⚠️ File Masquerading Detected</div>
+          <div class="masq-flow">
+            <div class="masq-pill">Link promised: <span id="impliedExt">—</span></div>
+            <div class="masq-arrow">→</div>
+            <div class="masq-pill danger">Actual file: <span id="actualExt">—</span></div>
+          </div>
+        </div>
+
+        <!-- Info grid -->
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Filename</label>
+            <div class="val" id="infoFilename">—</div>
+          </div>
+          <div class="info-item">
+            <label>File Type</label>
+            <div class="val" id="infoExt">—</div>
+          </div>
+          <div class="info-item" style="grid-column: 1/-1">
+            <label>Download Source URL</label>
+            <div class="val" id="infoUrl">—</div>
+          </div>
+        </div>
+
+        <!-- VirusTotal Section -->
+        <div class="vt-section">
+          <div class="vt-header">
+            <div class="vt-logo">🔬</div>
+            <div>
+              <div class="vt-title">Scan with VirusTotal</div>
+              <div class="vt-desc">Check this URL against 70+ antivirus engines</div>
+            </div>
+          </div>
+
+          <div class="api-key-row">
+            <input type="password" id="apiKeyInput" placeholder="Paste your free VirusTotal API key here..." />
+            <button class="btn btn-vt" id="scanBtn" onclick="startVTScan()">
+              🔍 Scan Now
+            </button>
+          </div>
+          <div class="vt-note">
+            Get a free API key at <a href="https://www.virustotal.com" target="_blank">virustotal.com</a> (500 scans/day free).
+            Your key is never stored or transmitted except to VirusTotal's API.
+          </div>
+
+          <!-- Spinner -->
+          <div id="vtSpinner">⏳ Scanning with VirusTotal... this may take 10–30 seconds</div>
+
+          <!-- Error -->
+          <div id="vtError"></div>
+
+          <!-- Results -->
+          <div id="vtResults"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+          <button class="btn btn-cancel" onclick="cancelDownload()">
+            🗑️ Cancel Download
+          </button>
+          <button class="btn btn-allow" onclick="allowDownload()">
+            ✅ I Understand — Proceed Anyway
+          </button>
+        </div>
+        <div class="action-note">
+          DownloadGuard has paused this download. You remain in control.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="warning.js"></script>
+</body>
+</html>
