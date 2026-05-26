@@ -1,14 +1,13 @@
 // =============================================================================
-// DownloadGuard - spamdetector.js v2.0
-// Local keyword + corporate brand spoofing detection
-// Covers 200+ major corporations across all sectors
+// DownloadGuard - background.js v3.4
+// Fixes: download detection via onCreated+onChanged, Gemini 2.5 Flash
 // =============================================================================
 
 // ---------------------------------------------------------------------------
-// TOP 200 CORPORATE BRANDS + OFFICIAL DOMAINS
-// Any email claiming to be from these brands but sent from a different
-// domain is immediately flagged as potential phishing
+// SPAM DETECTOR — inlined from spamdetector.js
+// (Local keyword scan + 200-brand corporate database)
 // ---------------------------------------------------------------------------
+
 const KNOWN_BRANDS = [
   // ── Technology ────────────────────────────────────────────────────────────
   { name:'Google',       domains:['google.com','gmail.com','googlemail.com','google.co.uk','google.ca','google.com.au','youtube.com','googleapis.com'] },
@@ -72,7 +71,6 @@ const KNOWN_BRANDS = [
   { name:'Namecheap',    domains:['namecheap.com'] },
   { name:'Wix',          domains:['wix.com'] },
   { name:'Squarespace',  domains:['squarespace.com'] },
-
   // ── Banking & Finance ─────────────────────────────────────────────────────
   { name:'HSBC',         domains:['hsbc.com','hsbc.co.uk','hsbc.ca','hsbc.com.hk'] },
   { name:'Barclays',     domains:['barclays.com','barclays.co.uk','barclaycard.co.uk'] },
@@ -107,7 +105,6 @@ const KNOWN_BRANDS = [
   { name:'Venmo',        domains:['venmo.com'] },
   { name:'Klarna',       domains:['klarna.com'] },
   { name:'Afterpay',     domains:['afterpay.com'] },
-
   // ── Insurance ─────────────────────────────────────────────────────────────
   { name:'Aviva',        domains:['aviva.com','aviva.co.uk'] },
   { name:'AXA',          domains:['axa.com','axa.co.uk'] },
@@ -123,7 +120,6 @@ const KNOWN_BRANDS = [
   { name:'USAA',         domains:['usaa.com'] },
   { name:'Bupa',         domains:['bupa.com','bupa.co.uk'] },
   { name:'Vitality',     domains:['vitality.co.uk'] },
-
   // ── Retail & eCommerce ────────────────────────────────────────────────────
   { name:'Walmart',      domains:['walmart.com'] },
   { name:'Target',       domains:['target.com'] },
@@ -147,7 +143,6 @@ const KNOWN_BRANDS = [
   { name:'Currys',       domains:['currys.co.uk'] },
   { name:'Boots',        domains:['boots.com'] },
   { name:'Tesco',        domains:['tesco.com','tescobank.com'] },
-
   // ── Delivery & Logistics ──────────────────────────────────────────────────
   { name:'DHL',          domains:['dhl.com','dhl.de','dhl.co.uk'] },
   { name:'FedEx',        domains:['fedex.com'] },
@@ -160,7 +155,6 @@ const KNOWN_BRANDS = [
   { name:'TNT',          domains:['tnt.com'] },
   { name:'Purolator',    domains:['purolator.com'] },
   { name:'Australia Post', domains:['auspost.com.au'] },
-
   // ── Telecommunications ────────────────────────────────────────────────────
   { name:'AT&T',         domains:['att.com'] },
   { name:'Verizon',      domains:['verizon.com'] },
@@ -174,7 +168,6 @@ const KNOWN_BRANDS = [
   { name:'Virgin Media', domains:['virginmedia.com'] },
   { name:'Comcast',      domains:['comcast.com','xfinity.com'] },
   { name:'Rogers',       domains:['rogers.com'] },
-
   // ── Government & Tax ──────────────────────────────────────────────────────
   { name:'HMRC',         domains:['hmrc.gov.uk','gov.uk'] },
   { name:'IRS',          domains:['irs.gov'] },
@@ -184,7 +177,6 @@ const KNOWN_BRANDS = [
   { name:'Companies House', domains:['companieshouse.gov.uk','gov.uk'] },
   { name:'NHS',          domains:['nhs.uk','nhs.net'] },
   { name:'TV Licensing', domains:['tvlicensing.co.uk'] },
-
   // ── Travel & Hospitality ──────────────────────────────────────────────────
   { name:'British Airways', domains:['britishairways.com','ba.com'] },
   { name:'Ryanair',      domains:['ryanair.com'] },
@@ -197,12 +189,10 @@ const KNOWN_BRANDS = [
   { name:'Southwest',    domains:['southwest.com'] },
   { name:'Booking.com',  domains:['booking.com'] },
   { name:'Expedia',      domains:['expedia.com','expedia.co.uk'] },
-  { name:'Airbnb',       domains:['airbnb.com','airbnb.co.uk'] },
   { name:'TripAdvisor',  domains:['tripadvisor.com'] },
   { name:'Marriott',     domains:['marriott.com'] },
   { name:'Hilton',       domains:['hilton.com'] },
   { name:'Hyatt',        domains:['hyatt.com'] },
-
   // ── Streaming & Entertainment ─────────────────────────────────────────────
   { name:'Disney+',      domains:['disney.com','disneyplus.com'] },
   { name:'HBO Max',      domains:['hbomax.com','max.com','warnermedia.com'] },
@@ -212,7 +202,6 @@ const KNOWN_BRANDS = [
   { name:'Prime Video',  domains:['primevideo.com','amazon.com'] },
   { name:'Apple Music',  domains:['apple.com'] },
   { name:'YouTube',      domains:['youtube.com','google.com'] },
-
   // ── Healthcare & Pharma ───────────────────────────────────────────────────
   { name:'Pfizer',       domains:['pfizer.com'] },
   { name:'Johnson & Johnson', domains:['jnj.com','janssen.com'] },
@@ -221,8 +210,6 @@ const KNOWN_BRANDS = [
   { name:'GSK',          domains:['gsk.com','glaxosmithkline.com'] },
   { name:'Roche',        domains:['roche.com'] },
   { name:'Novartis',     domains:['novartis.com'] },
-  { name:'Boots',        domains:['boots.com'] },
-
   // ── Energy ────────────────────────────────────────────────────────────────
   { name:'BP',           domains:['bp.com'] },
   { name:'Shell',        domains:['shell.com'] },
@@ -231,20 +218,17 @@ const KNOWN_BRANDS = [
   { name:'E.ON',         domains:['eon.com','eon.co.uk'] },
   { name:'OVO Energy',   domains:['ovoenergy.com'] },
   { name:'Octopus Energy', domains:['octopus.energy'] },
-
   // ── Food & Delivery ───────────────────────────────────────────────────────
   { name:'Uber Eats',    domains:['ubereats.com','uber.com'] },
   { name:'Deliveroo',    domains:['deliveroo.com','deliveroo.co.uk'] },
   { name:'Just Eat',     domains:['just-eat.co.uk','just-eat.com'] },
   { name:'DoorDash',     domains:['doordash.com'] },
   { name:'Starbucks',    domains:['starbucks.com'] },
-  { name:'McDonald\'s',  domains:['mcdonalds.com'] }
+  { name:"McDonald's",   domains:['mcdonalds.com'] }
 ];
 
 // ---------------------------------------------------------------------------
-// LEVENSHTEIN DISTANCE — measures how similar two strings are
-// Edit distance of 1-2 on domain names = likely spoofing attempt
-// e.g. "paypa1.com" vs "paypal.com" = distance 1
+// LEVENSHTEIN DISTANCE
 // ---------------------------------------------------------------------------
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
@@ -262,104 +246,64 @@ function levenshtein(a, b) {
 }
 
 // ---------------------------------------------------------------------------
-// HOMOGLYPH MAP — characters that look like other characters
-// Attackers swap these to make fake domains look real
+// HOMOGLYPH NORMALISATION
 // ---------------------------------------------------------------------------
-const HOMOGLYPHS = {
-  'a': ['@', '4', 'α', 'а'],   // Cyrillic а looks identical to Latin a
-  'e': ['3', 'е'],              // Cyrillic е
-  'i': ['1', '!', 'l', '|', 'í', 'ì'],
-  'o': ['0', 'ο', 'о'],         // Greek/Cyrillic o
-  'l': ['1', 'I', '|'],
-  's': ['5', '$'],
-  't': ['7', '+'],
-  'g': ['9', 'q'],
-  'b': ['6'],
-  'c': ['('],
-  'n': ['m'],
-  'u': ['v'],
-  'v': ['u'],
-  'rn': ['m'],                  // "rn" together looks like "m"
-  'cl': ['d'],                  // "cl" together looks like "d"
-};
-
-// Normalise a domain by replacing common homoglyphs with their real chars
 function normaliseDomain(domain) {
   let normalised = domain.toLowerCase();
-  // Multi-char substitutions first
   normalised = normalised.replace(/rn/g, 'm').replace(/cl/g, 'd');
-  // Single char substitutions
   const map = {'@':'a','4':'a','3':'e','1':'i','0':'o','5':'s','$':'s','7':'t','9':'g','6':'b'};
   return normalised.replace(/[@413057$96]/g, c => map[c] || c);
 }
 
 // ---------------------------------------------------------------------------
 // DOMAIN SPOOF DETECTION
-// For each brand, checks if the sender domain:
-// 1. Exactly matches an official domain → legit
-// 2. Is within edit distance 1-2 of an official domain → SPOOF
-// 3. Contains the brand name but has extra parts → SPOOF
-// 4. After homoglyph normalisation, matches → SPOOF
 // ---------------------------------------------------------------------------
 function detectDomainSpoofing(senderEmail, senderName, subject, body) {
   if (!senderEmail || !senderEmail.includes('@')) return null;
-
-  const senderDomain   = senderEmail.split('@')[1]?.toLowerCase()?.trim() || '';
+  const senderDomain     = senderEmail.split('@')[1]?.toLowerCase()?.trim() || '';
   const senderDomainNorm = normaliseDomain(senderDomain);
   if (!senderDomain) return null;
 
   const fullText = `${senderName} ${subject} ${body.substring(0, 800)}`.toLowerCase();
 
   for (const brand of KNOWN_BRANDS) {
-    const brandLower    = brand.name.toLowerCase();
+    const brandLower     = brand.name.toLowerCase();
     const brandMentioned = fullText.includes(brandLower) ||
                            fullText.includes(brandLower.replace(/\s+/g,'')) ||
                            senderName.toLowerCase().includes(brandLower);
-
-    // Check if sender is on an official domain
     const isOfficial = brand.domains.some(d => senderDomain === d || senderDomain.endsWith('.' + d));
-    if (isOfficial) continue; // Legitimate — skip
-
+    if (isOfficial) continue;
     if (!brandMentioned && !senderDomain.includes(brandLower.replace(/\s+/g, ''))) continue;
 
-    // Check each official domain for spoofing
     for (const officialDomain of brand.domains) {
-      const officialBase = officialDomain.split('.')[0]; // e.g. "paypal" from "paypal.com"
-      const senderBase   = senderDomain.split('.')[0];
+      const officialBase   = officialDomain.split('.')[0];
+      const senderBase     = senderDomain.split('.')[0];
       const senderBaseNorm = normaliseDomain(senderBase);
 
-      // Method 1: Edit distance on domain base (catches typos & char swaps)
       const dist = levenshtein(senderBaseNorm, officialBase);
       if (dist > 0 && dist <= 2 && senderBase.length >= 3) {
         return {
-          brand:     brand.name,
-          spoofed:   senderDomain,
-          official:  officialDomain,
-          method:    'character substitution',
-          indicator: `⚠️ "${senderDomain}" appears to spoof ${brand.name} (official: ${officialDomain}) — ${dist} character difference detected (e.g. "${senderBase}" vs "${officialBase}")`
+          brand: brand.name, spoofed: senderDomain, official: officialDomain,
+          method: 'character substitution',
+          indicator: `⚠️ "${senderDomain}" appears to spoof ${brand.name} (official: ${officialDomain}) — ${dist} character difference detected`
         };
       }
-
-      // Method 2: Homoglyph normalisation match
       if (senderBaseNorm === officialBase && senderBase !== officialBase) {
         return {
-          brand:     brand.name,
-          spoofed:   senderDomain,
-          official:  officialDomain,
-          method:    'homoglyph substitution',
-          indicator: `🔴 "${senderDomain}" uses look-alike characters to impersonate ${brand.name} (official domain: ${officialDomain})`
+          brand: brand.name, spoofed: senderDomain, official: officialDomain,
+          method: 'homoglyph substitution',
+          indicator: `🔴 "${senderDomain}" uses look-alike characters to impersonate ${brand.name} (official: ${officialDomain})`
         };
       }
-
-      // Method 3: Brand name + extra words (paypal-security.com, google-accounts.com)
-      if ((senderDomain.includes(officialBase) || senderDomain.includes(brandLower.replace(/\s+/g,'')))
-          && !isOfficial) {
+      // Only apply substring check if the base is 4+ chars — prevents "ing"
+      // matching "kingston.ac.uk", "bp" matching "tbp.com" etc.
+      if (officialBase.length >= 4 &&
+          (senderDomain.includes(officialBase) || senderDomain.includes(brandLower.replace(/\s+/g,''))) &&
+          !isOfficial) {
         return {
-          brand:     brand.name,
-          spoofed:   senderDomain,
-          official:  officialDomain,
-          method:    'subdomain/keyword injection',
-          indicator: `🔴 "${senderDomain}" contains "${brand.name}" brand name but is NOT an official ${brand.name} domain (official: ${officialDomain})`
+          brand: brand.name, spoofed: senderDomain, official: officialDomain,
+          method: 'subdomain/keyword injection',
+          indicator: `🔴 "${senderDomain}" contains "${brand.name}" brand name but is NOT an official domain (official: ${officialDomain})`
         };
       }
     }
@@ -368,7 +312,7 @@ function detectDomainSpoofing(senderEmail, senderName, subject, body) {
 }
 
 // ---------------------------------------------------------------------------
-// SPAM KEYWORD RULES — 150+ phrases across 3 severity tiers
+// SPAM KEYWORD RULES
 // ---------------------------------------------------------------------------
 const SPAM_RULES = {
   CRITICAL: {
@@ -448,9 +392,6 @@ const SPAM_RULES = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// SUSPICIOUS LINK DETECTION
-// ---------------------------------------------------------------------------
 function detectSuspiciousLinks(links) {
   const indicators = [];
   for (const link of links.slice(0, 20)) {
@@ -458,52 +399,49 @@ function detectSuspiciousLinks(links) {
       const urlObj = new URL(link);
       const domain = urlObj.hostname.toLowerCase();
       const normDomain = normaliseDomain(domain.split('.')[0]);
-
-      // Check if this link domain spoofs any known brand
+      let brandMatched = false; // stop after first brand match per URL
       for (const brand of KNOWN_BRANDS) {
+        if (brandMatched) break;
         for (const officialDomain of brand.domains) {
           const officialBase = officialDomain.split('.')[0];
+          // Skip bases shorter than 4 chars — avoids "ing" matching "kingston",
+          // "ubs" matching "clubs", "ups" matching "cups" etc.
+          if (officialBase.length < 4) continue;
           const dist = levenshtein(normDomain, officialBase);
           if (dist > 0 && dist <= 2 && normDomain.length >= 4) {
             indicators.push(`Suspicious link domain "${domain}" may spoof ${brand.name} (official: ${officialDomain})`);
+            brandMatched = true;
             break;
           }
           if (domain.includes(officialBase) && !brand.domains.includes(domain) && !brand.domains.some(d => domain.endsWith('.' + d))) {
             indicators.push(`Link uses ${brand.name} brand name in suspicious domain: "${domain}"`);
+            brandMatched = true;
             break;
           }
         }
       }
-
-      // Generic suspicious patterns
       if (domain.includes('-secure') || domain.includes('-login') ||
           domain.includes('-verify') || domain.includes('-account') ||
           domain.includes('-update') || domain.includes('-confirm') ||
           /[a-z]+[0-9]{2,}[a-z]+\.[a-z]{2,}/.test(domain)) {
         indicators.push(`Suspicious URL pattern detected: "${domain}"`);
       }
-
-      // URL shorteners used in phishing
       const shorteners = ['bit.ly','tinyurl.com','t.co','ow.ly','short.link','is.gd','buff.ly','rebrand.ly'];
       if (shorteners.some(s => domain === s || domain.endsWith('.' + s))) {
         indicators.push(`URL shortener detected (${domain}) — hides true destination`);
       }
-
-    } catch(e) { /* invalid URL */ }
+    } catch(e) {}
   }
-  return [...new Set(indicators)]; // deduplicate
+  return [...new Set(indicators)];
 }
 
-// ---------------------------------------------------------------------------
-// FORMATTING CHECKS
-// ---------------------------------------------------------------------------
 function detectSpamFormatting(body) {
   const indicators = [];
   const exclamations = (body.match(/!/g) || []).length;
   if (exclamations >= 5) {
     indicators.push(`Excessive exclamation marks (${exclamations} found) — common spam pattern`);
   }
-  const words    = body.split(/\s+/);
+  const words     = body.split(/\s+/);
   const capsWords = words.filter(w => w.length > 3 && w === w.toUpperCase() && /[A-Z]/.test(w));
   const capsPct   = words.length > 0 ? (capsWords.length / words.length) * 100 : 0;
   if (capsPct > 20 && capsWords.length > 4) {
@@ -512,9 +450,6 @@ function detectSpamFormatting(body) {
   return indicators;
 }
 
-// ---------------------------------------------------------------------------
-// MAIN SCANNER
-// ---------------------------------------------------------------------------
 function runLocalSpamScan(emailData) {
   const { subject='', senderName='', senderEmail='', body='', links=[] } = emailData;
   const fullText = `${subject} ${senderName} ${body}`.toLowerCase();
@@ -528,7 +463,6 @@ function runLocalSpamScan(emailData) {
     if (order.indexOf(level) > order.indexOf(highestLevel)) highestLevel = level;
   };
 
-  // ── Keyword scan ──
   for (const [level, rule] of Object.entries(SPAM_RULES)) {
     const matched = rule.phrases.filter(p => fullText.includes(p.toLowerCase()));
     if (matched.length > 0) {
@@ -539,7 +473,6 @@ function runLocalSpamScan(emailData) {
     }
   }
 
-  // ── Domain spoofing ──
   const spoof = detectDomainSpoofing(senderEmail, senderName, subject, body);
   if (spoof) {
     indicators.push(spoof.indicator);
@@ -547,7 +480,6 @@ function runLocalSpamScan(emailData) {
     setLevel('CRITICAL');
   }
 
-  // ── Link analysis ──
   const linkIssues = detectSuspiciousLinks(links);
   linkIssues.forEach(issue => {
     indicators.push(issue);
@@ -555,14 +487,12 @@ function runLocalSpamScan(emailData) {
     setLevel('HIGH');
   });
 
-  // ── Formatting ──
   detectSpamFormatting(body).forEach(issue => {
     indicators.push(issue);
     totalScore += 15;
     setLevel('MEDIUM');
   });
 
-  // ── Final score & level ──
   const riskScore = Math.min(Math.round(totalScore), 100);
   let riskLevel   = riskScore === 0 ? 'LOW' : riskScore <= 20 ? 'LOW' : riskScore <= 45 ? 'MEDIUM' : riskScore <= 75 ? 'HIGH' : 'CRITICAL';
   if (highestLevel === 'CRITICAL') riskLevel = 'CRITICAL';
@@ -597,18 +527,25 @@ function runLocalSpamScan(emailData) {
 }
 
 // =============================================================================
-// DownloadGuard - background.js v3.0
-// Single clean message listener. No duplicates.
+// DOWNLOAD MONITORING — Fixed for MV3
+//
+// Root cause of original bug: chrome.downloads.onCreated fires immediately
+// when a download is initiated, but item.filename is empty at that point
+// because Chrome hasn't determined the final path yet. The old code returned
+// early when filename was empty, silently skipping all detection.
+//
+// Fix: Two-listener approach
+//   1. onCreated — try the filename immediately (works if already known).
+//      If still empty, register the download ID in pendingDownloads.
+//   2. onChanged — fires when Chrome sets item.filename. We check any
+//      pending download IDs here, retrieve the full item, and run checks.
 // =============================================================================
 
-// ---------------------------------------------------------------------------
-// CONSTANTS
-// ---------------------------------------------------------------------------
-const DANGEROUS_EXTENSIONS = [
+const DANGEROUS_EXTENSIONS = new Set([
   '.exe', '.dmg', '.msi', '.bat', '.cmd', '.ps1',
   '.vbs', '.jar', '.sh', '.scr', '.pif', '.hta',
   '.wsf', '.reg', '.app', '.com'
-];
+]);
 
 const MEDIA_EXTENSIONS = [
   '.mp4', '.mp3', '.avi', '.mkv', '.mov', '.wmv',
@@ -616,22 +553,32 @@ const MEDIA_EXTENSIONS = [
   '.jpg', '.jpeg', '.png', '.gif', '.zip', '.rar'
 ];
 
+// Tracks download IDs whose filename wasn't available at onCreated time
+const pendingDownloads = new Map(); // downloadId → { url }
+
+// Tracks IDs we've already triggered a warning for (prevent duplicate tabs)
+const warnedDownloads = new Set();
+
 // ---------------------------------------------------------------------------
-// DOWNLOAD MONITORING
+// HELPERS
 // ---------------------------------------------------------------------------
 function getExtension(filename) {
   if (!filename) return '';
-  const parts = filename.toLowerCase().trim().split('.');
-  return parts.length < 2 ? '' : '.' + parts[parts.length - 1];
+  const lower = filename.toLowerCase().trim();
+  const dot   = lower.lastIndexOf('.');
+  return dot === -1 ? '' : lower.slice(dot);
 }
 
 function getImpliedExtension(filename) {
-  // Catches "movie.mp4.exe" — finds media ext BEFORE the final extension
+  // Detects double-extension attack: "invoice.pdf.exe"
+  // Looks for a media/benign extension that appears BEFORE the final extension
   if (!filename) return null;
-  const lower = filename.toLowerCase();
+  const lower   = filename.toLowerCase();
+  const lastDot = lower.lastIndexOf('.');
+  if (lastDot === -1) return null;
+  const prefix  = lower.slice(0, lastDot); // everything before the real ext
   for (const ext of MEDIA_EXTENSIONS) {
-    const idx = lower.lastIndexOf(ext);
-    if (idx !== -1 && idx < lower.length - ext.length) return ext;
+    if (prefix.endsWith(ext)) return ext;
   }
   return null;
 }
@@ -639,79 +586,138 @@ function getImpliedExtension(filename) {
 function getUrlImpliedExtension(url) {
   try {
     const path = new URL(url).pathname.toLowerCase();
-    for (const ext of MEDIA_EXTENSIONS) {
-      if (path.includes(ext)) return ext;
-    }
+    // Remove query params / fragments from path
+    const cleanPath = path.split('?')[0].split('#')[0];
+    const lastDot   = cleanPath.lastIndexOf('.');
+    if (lastDot === -1) return null;
+    const urlExt = cleanPath.slice(lastDot);
+    // Only return if it's a benign/media extension (the "implied safe" type)
+    if (MEDIA_EXTENSIONS.includes(urlExt)) return urlExt;
   } catch (e) {}
   return null;
 }
 
-function resolveFilename(item) {
-  if (item.filename?.trim()) return item.filename.split(/[/\\]/).pop().trim();
+function resolveFilenameFromItem(item) {
+  // item.filename is the full local path e.g. /home/user/Downloads/file.exe
+  // We only want the basename
+  if (item.filename && item.filename.trim()) {
+    return item.filename.trim().split(/[/\\]/).pop().trim();
+  }
+  // Fall back to URL path parsing
   try {
     const url = item.finalUrl || item.url;
-    if (url.startsWith('data:')) return '';
-    return decodeURIComponent(new URL(url).pathname.split('/').pop()) || '';
-  } catch (e) { return ''; }
+    if (!url || url.startsWith('data:') || url.startsWith('blob:')) return '';
+    const pathname = new URL(url).pathname;
+    const decoded  = decodeURIComponent(pathname.split('/').pop());
+    return decoded || '';
+  } catch (e) {
+    return '';
+  }
 }
 
-chrome.downloads.onCreated.addListener(async (item) => {
-  const filename = resolveFilename(item);
-  console.log('[DG] Download detected:', filename, '|', (item.finalUrl || item.url).substring(0, 60));
+// ---------------------------------------------------------------------------
+// CORE CHECK — runs once we have a real filename
+// ---------------------------------------------------------------------------
+function checkAndWarnDownload(downloadId, filename, url) {
+  if (warnedDownloads.has(downloadId)) return; // already handled
 
-  if (!filename) { console.log('[DG] No filename — skip'); return; }
+  console.log('[DG] Checking download:', downloadId, filename);
 
   const actualExt = getExtension(filename);
-  console.log('[DG] Extension:', actualExt);
-
-  if (!DANGEROUS_EXTENSIONS.includes(actualExt)) {
-    console.log('[DG] Safe extension — no warning');
+  if (!actualExt || !DANGEROUS_EXTENSIONS.has(actualExt)) {
+    console.log('[DG] Safe extension, no action:', actualExt || '(none)');
     return;
   }
 
-  const url             = item.finalUrl || item.url;
+  // Determine masquerading
   const impliedFromFile = getImpliedExtension(filename);
   const impliedFromUrl  = getUrlImpliedExtension(url);
   const impliedExt      = impliedFromFile || impliedFromUrl;
-  const isMasq          = impliedExt !== null && impliedExt !== actualExt;
+  const isMasq          = impliedExt !== null;
 
-  console.log('[DG] DANGEROUS — implied:', impliedExt, '| masquerading:', isMasq);
+  console.log('[DG] DANGEROUS —', actualExt, '| implied:', impliedExt, '| masq:', isMasq);
 
-  // ── Pause the download immediately so the file isn't written to disk ──
-  chrome.downloads.pause(item.id, () => {
+  warnedDownloads.add(downloadId);
+
+  // Pause the download before it reaches disk
+  chrome.downloads.pause(downloadId, () => {
     if (chrome.runtime.lastError) {
-      // Download completed before we could pause — nothing we can do
-      console.warn('[DG] Could not pause download:', chrome.runtime.lastError.message);
-      return;
+      console.warn('[DG] Could not pause (may have already completed):', chrome.runtime.lastError.message);
+      // Still show the warning even if we couldn't pause — user should know
     }
 
     const warningData = {
-      downloadId:      item.id,
+      downloadId,
       filename,
       actualExt,
       url,
-      isMasquerading:  isMasq,
-      impliedExt:      impliedExt || null,
-      threatLevel:     isMasq ? 'CRITICAL' : 'HIGH',
-      detectedAt:      new Date().toISOString()
+      isMasquerading: isMasq,
+      impliedExt:     impliedExt || null,
+      threatLevel:    isMasq ? 'CRITICAL' : 'HIGH',
+      detectedAt:     new Date().toISOString()
     };
 
-    // Store so warning.js can retrieve it via GET_WARNING_DATA
     chrome.storage.session.set(
-      { [`dg_warning_${item.id}`]: warningData },
+      { [`dg_warning_${downloadId}`]: warningData },
       () => {
-        // Open warning page in a new tab
         chrome.tabs.create({
-          url: chrome.runtime.getURL(`warning.html?id=${item.id}`)
+          url: chrome.runtime.getURL(`warning.html?id=${downloadId}`)
         });
       }
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// LISTENER 1: onCreated — fires immediately when download starts
+// ---------------------------------------------------------------------------
+chrome.downloads.onCreated.addListener((item) => {
+  const url      = item.finalUrl || item.url || '';
+  const filename = resolveFilenameFromItem(item);
+
+  console.log('[DG] onCreated:', item.id, '| filename:', filename || '(empty)', '| url:', url.substring(0, 60));
+
+  if (filename) {
+    // Filename already known — check immediately
+    checkAndWarnDownload(item.id, filename, url);
+  } else {
+    // Filename not yet determined — register for onChanged
+    console.log('[DG] Filename empty at creation, queuing for onChanged:', item.id);
+    pendingDownloads.set(item.id, { url });
+  }
 });
 
 // ---------------------------------------------------------------------------
-// SINGLE MESSAGE LISTENER — handles everything
+// LISTENER 2: onChanged — fires when any download property changes
+// This is the key fix: Chrome sets item.filename here after the server
+// responds with Content-Disposition / MIME type headers
 // ---------------------------------------------------------------------------
+chrome.downloads.onChanged.addListener((delta) => {
+  // We only care about downloads that were pending AND now have a filename
+  if (!pendingDownloads.has(delta.id)) return;
+  if (!delta.filename?.current) return;
+
+  const fullPath = delta.filename.current;
+  if (!fullPath) return;
+
+  const filename = fullPath.split(/[/\\]/).pop().trim();
+  const url      = pendingDownloads.get(delta.id).url;
+
+  console.log('[DG] onChanged — filename now set:', delta.id, filename);
+  pendingDownloads.delete(delta.id); // remove from pending
+
+  checkAndWarnDownload(delta.id, filename, url);
+});
+
+// Clean up tracking sets when downloads are erased (prevents memory leak)
+chrome.downloads.onErased.addListener((downloadId) => {
+  pendingDownloads.delete(downloadId);
+  warnedDownloads.delete(downloadId);
+});
+
+// =============================================================================
+// SINGLE MESSAGE LISTENER
+// =============================================================================
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // ── Download decisions ──
@@ -751,18 +757,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // ── Email analysis: local keyword scan first, Gemini as fallback ──
   if (msg.action === 'ANALYSE_PHISHING') {
-
-    // Step 1: Run local keyword scan instantly (no API, no quota)
     const localResult = runLocalSpamScan(msg.emailData);
     console.log('[DG] Local scan:', localResult.riskLevel, localResult.riskScore, localResult.keywordsMatched, 'keywords');
 
-    // Step 2: If local scan found something definitive, return it immediately
-    // CRITICAL or HIGH with 2+ keywords = confident enough, skip Gemini
     if (localResult.riskLevel === 'CRITICAL' ||
        (localResult.riskLevel === 'HIGH' && localResult.keywordsMatched >= 2)) {
       localResult.detectionMethod = 'LOCAL_KEYWORD_SCAN';
-
-      // Store result for download warning correlation
       if (sender.tab?.id) {
         chrome.storage.session.set({
           [`dg_phishing_${sender.tab.id}`]: {
@@ -777,36 +777,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
     }
 
-    // Step 3: For MEDIUM/LOW/ambiguous — try Gemini for deeper analysis
     chrome.storage.local.get('dg_gemini_key', async (stored) => {
       const key = stored.dg_gemini_key;
-
-      // No Gemini key — just return local result as-is
       if (!key) {
         localResult.detectionMethod = 'LOCAL_KEYWORD_SCAN (no Gemini key)';
         sendResponse({ success: true, result: localResult });
         return;
       }
-
       try {
         const geminiResult = await analyseWithGemini(msg.emailData, key);
-
-        // Merge: take the higher risk level between local and Gemini
-        const levels   = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-        const localIdx = levels.indexOf(localResult.riskLevel);
-        const geminiIdx = levels.indexOf(geminiResult.riskLevel);
-        const finalResult = geminiIdx >= localIdx ? geminiResult : localResult;
-
-        // Combine indicators from both scans
+        const levels       = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+        const localIdx     = levels.indexOf(localResult.riskLevel);
+        const geminiIdx    = levels.indexOf(geminiResult.riskLevel);
+        const finalResult  = geminiIdx >= localIdx ? geminiResult : localResult;
         finalResult.indicators = [
           ...new Set([
             ...(geminiResult.indicators || []),
             ...(localResult.indicators  || [])
           ])
         ].slice(0, 12);
-
-        finalResult.detectionMethod = 'GEMINI + LOCAL_KEYWORDS';
-
+        finalResult.detectionMethod = 'GEMINI_2.5_FLASH + LOCAL_KEYWORDS';
         if (sender.tab?.id) {
           chrome.storage.session.set({
             [`dg_phishing_${sender.tab.id}`]: {
@@ -818,10 +808,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           });
         }
         sendResponse({ success: true, result: finalResult });
-
       } catch (e) {
-        // Gemini failed (quota, network etc) — fall back to local result
-        console.warn('[DG] Gemini failed, using local result:', e.message);
+        console.warn('[DG] Gemini failed, falling back to local result:', e.message);
         localResult.detectionMethod = 'LOCAL_KEYWORD_SCAN (Gemini unavailable)';
         localResult.verdict += ' (Gemini unavailable — local scan only)';
         sendResponse({ success: true, result: localResult });
@@ -830,7 +818,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // ── Inject content script into current tab (user clicked Allow) ──
+  // ── Inject content script into current tab ──
   if (msg.action === 'INJECT_CONTENT_SCRIPT') {
     chrome.tabs.query({ active: true, lastFocusedWindow: true }, async (tabs) => {
       const tab = tabs[0];
@@ -845,7 +833,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await chrome.storage.local.set({ dg_allowed_domains: allowed });
         sendResponse({ success: true, tabId: tab.id });
       } catch (e) {
-        // If already injected, that's fine — still return success
         sendResponse({ success: true, tabId: tab?.id, note: e.message });
       }
     });
@@ -885,16 +872,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // ── Test Gemini key ──
+  // ── Test Gemini key — uses gemini-2.5-flash ──
   if (msg.action === 'TEST_GEMINI_KEY') {
     const key = msg.key;
     if (!key) { sendResponse({ success: false, error: 'No key provided' }); return true; }
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: 'Reply with the single word: OK' }] }],
-        generationConfig: { maxOutputTokens: 5 }
+        generationConfig: { maxOutputTokens: 10, thinkingConfig: { thinkingBudget: 0 } }
       })
     })
     .then(async res => {
@@ -936,54 +923,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-
   // ── Ad-wall URL resolution ──
   if (msg.action === 'RESOLVE_ADWALL') {
     const url = msg.url;
     if (!url) { sendResponse({ success: false, error: 'No URL provided' }); return true; }
-
     (async () => {
       try {
-        // Follow HTTP redirects — this catches most link shortener chains
         const controller = new AbortController();
         const timeout    = setTimeout(() => controller.abort(), 8000);
-
-        const response = await fetch(url, {
-          method:   'GET',
-          redirect: 'follow',
-          signal:   controller.signal,
-          headers:  { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        const response   = await fetch(url, {
+          method: 'GET', redirect: 'follow', signal: controller.signal,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
         });
         clearTimeout(timeout);
-
         const finalUrl  = response.url;
-        let hops        = 0;
-
-        // Count redirects by comparing original to final
-        if (finalUrl !== url) hops = 1; // At least one redirect happened
-
-        // If we ended up on another known ad-wall, try to extract URL from HTML
+        const hops      = finalUrl !== url ? 1 : 0;
         const finalHost = (() => { try { return new URL(finalUrl).hostname.replace(/^www\./, ''); } catch(e) { return ''; } })();
         const adwallHosts = ['linkvertise.com','lnkfly.com','adf.ly','bc.vc','ouo.io','exe.io','shrink.pe','gplinks.in'];
-
         if (adwallHosts.includes(finalHost)) {
-          // Parse HTML for JS-based redirects
-          const html        = await response.text().catch(() => '');
-          const extracted   = extractRedirectFromHtml(html);
-          if (extracted) {
-            sendResponse({ success: true, finalUrl: extracted, hops: hops + 1, method: 'html-parse' });
-            return;
-          }
+          const html      = await response.text().catch(() => '');
+          const extracted = extractRedirectFromHtml(html);
+          if (extracted) { sendResponse({ success: true, finalUrl: extracted, hops: hops + 1, method: 'html-parse' }); return; }
         }
-
         sendResponse({ success: true, finalUrl, hops, method: finalUrl !== url ? 'http-redirect' : 'no-redirect' });
-
       } catch(e) {
-        if (e.name === 'AbortError') {
-          sendResponse({ success: false, error: 'Request timed out after 8 seconds' });
-        } else {
-          sendResponse({ success: false, error: e.message });
-        }
+        if (e.name === 'AbortError') sendResponse({ success: false, error: 'Request timed out after 8 seconds' });
+        else sendResponse({ success: false, error: e.message });
       }
     })();
     return true;
@@ -995,18 +960,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const dlKeys    = Object.keys(data).filter(k => k.startsWith('dg_warning_'));
       const phishKeys = Object.keys(data).filter(k => k.startsWith('dg_phishing_'));
       sendResponse({
-        threats:   dlKeys.length,
+        threats:    dlKeys.length,
         masquerade: dlKeys.filter(k => data[k]?.isMasquerading).length,
-        phishing:  phishKeys.filter(k => ['HIGH','CRITICAL'].includes(data[k]?.riskLevel)).length
+        phishing:   phishKeys.filter(k => ['HIGH','CRITICAL'].includes(data[k]?.riskLevel)).length
       });
     });
     return true;
   }
 });
 
-// ---------------------------------------------------------------------------
+// =============================================================================
 // VIRUSTOTAL: Submit URL and poll for results
-// ---------------------------------------------------------------------------
+// =============================================================================
 async function scanWithVT(url, apiKey) {
   const submitRes = await fetch('https://www.virustotal.com/api/v3/urls', {
     method: 'POST',
@@ -1048,16 +1013,19 @@ async function scanWithVT(url, apiKey) {
   throw new Error('VT analysis timed out — check results at virustotal.com directly.');
 }
 
-// ---------------------------------------------------------------------------
-// GEMINI: High-sensitivity phishing AND spam detection
-// ---------------------------------------------------------------------------
+// =============================================================================
+// GEMINI 2.5 FLASH: Phishing + spam detection
+// Model: gemini-2.5-flash
+// thinkingBudget: 512 — gives the model brief reasoning time for better
+// accuracy on ambiguous emails, without adding significant latency
+// =============================================================================
 async function analyseWithGemini(emailData, apiKey) {
   const prompt = `You are an email security analyst. Analyse this email for phishing, spam, and scams.
-Return ONLY valid JSON, no markdown:
-{"riskScore":<0-100>,"riskLevel":"<LOW|MEDIUM|HIGH|CRITICAL>","threatType":"<PHISHING|SPAM|SCAM|MALWARE|LEGITIMATE>","indicators":[<red flags found>],"verdict":"<one sentence>","recommendation":"<one action>"}
+Return ONLY valid JSON, no markdown, no preamble:
+{"riskScore":<0-100>,"riskLevel":"<LOW|MEDIUM|HIGH|CRITICAL>","threatType":"<PHISHING|SPAM|SCAM|MALWARE|LEGITIMATE>","indicators":[<red flags found, as strings>],"verdict":"<one sentence>","recommendation":"<one action>"}
 
 Scoring: 0-20=LOW, 21-45=MEDIUM, 46-75=HIGH, 76-100=CRITICAL
-Err HIGH not low. Unknown senders = minimum MEDIUM.
+Err HIGH not LOW for ambiguous emails. Unknown senders = minimum MEDIUM.
 
 Phishing: domain mismatch, credential requests, urgency threats, brand impersonation, fake login links.
 Spam: unsolicited marketing, prize claims, crypto offers, health products, vague subjects.
@@ -1066,16 +1034,20 @@ Scam: advance fee, romance, tech support, job offer fraud.
 Subject: ${emailData.subject || '(none)'}
 From: ${emailData.senderName || 'Unknown'} <${emailData.senderEmail || 'unknown'}>
 Body: ${emailData.body ? emailData.body.substring(0, 1500) : '(empty)'}
-Links: ${emailData.links?.slice(0,5).join(', ') || 'none'}`;
+Links: ${emailData.links?.slice(0, 5).join(', ') || 'none'}`;
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.05, maxOutputTokens: 1024 }
+        generationConfig: {
+          temperature:   0.05,
+          maxOutputTokens: 1024,
+          thinkingConfig: { thinkingBudget: 512 }
+        }
       })
     }
   );
@@ -1085,15 +1057,19 @@ Links: ${emailData.links?.slice(0,5).join(', ') || 'none'}`;
     throw new Error(`Gemini error: ${d?.error?.message || 'HTTP ' + res.status}`);
   }
 
-  const data    = await res.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const data = await res.json();
+
+  // Gemini 2.5 Flash may return both thinking and text parts — find the text part
+  const parts   = data?.candidates?.[0]?.content?.parts || [];
+  const textPart = parts.find(p => p.text && !p.thought);
+  const rawText  = textPart?.text || parts[0]?.text;
   if (!rawText) throw new Error('Gemini returned empty response.');
 
   const clean  = rawText.replace(/```json|```/g, '').trim();
   const parsed = JSON.parse(clean);
   if (parsed.riskScore === undefined) throw new Error('Invalid Gemini response structure.');
 
-  // Client-side sensitivity boost: LOW with any indicators => bump to MEDIUM
+  // Sensitivity boost: LOW with any indicators → bump to MEDIUM
   if (parsed.riskLevel === 'LOW' && parsed.indicators?.length > 0) {
     parsed.riskLevel = 'MEDIUM';
     parsed.riskScore = Math.max(parsed.riskScore, 25);
@@ -1102,18 +1078,15 @@ Links: ${emailData.links?.slice(0,5).join(', ') || 'none'}`;
   return parsed;
 }
 
-// ---------------------------------------------------------------------------
-// ADWALL: Extract redirect URL from HTML page (JS-based redirects)
-// ---------------------------------------------------------------------------
+// =============================================================================
+// ADWALL: Extract redirect URL from HTML
+// =============================================================================
 function extractRedirectFromHtml(html) {
   if (!html) return null;
-
-  // Meta refresh: <meta http-equiv="refresh" content="0;url=...">
   const metaMatch = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]+content=["'][^"']*url=([^"'\s>]+)/i)
                  || html.match(/content=["'][^"']*url=([^"'\s>]+)/i);
   if (metaMatch) return metaMatch[1].trim();
 
-  // window.location.href = "..."
   const locPatterns = [
     /window\.location\.href\s*=\s*["']([^"']+)["']/,
     /window\.location\s*=\s*["']([^"']+)["']/,
@@ -1122,16 +1095,11 @@ function extractRedirectFromHtml(html) {
     /location\.replace\s*\(\s*["']([^"']+)["']\s*\)/,
     /location\.assign\s*\(\s*["']([^"']+)["']\s*\)/,
   ];
-
   for (const pattern of locPatterns) {
     const match = html.match(pattern);
     if (match && match[1].startsWith('http')) return match[1];
   }
-
-  // href="..." with common destination link patterns
   const hrefMatch = html.match(/href=["'](https?:\/\/[^"']+)["'][^>]*>(?:skip|continue|get link|download|proceed)/i);
   if (hrefMatch) return hrefMatch[1];
-
   return null;
 }
-

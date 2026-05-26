@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DownloadGuard",
-  "version": "3.3",
+  "version": "3.4",
   "description": "Malicious download detection, phishing analysis, link preview, QR scanner, ad-wall bypasser, and clickjacking neutralizer.",
   "permissions": [
     "downloads",
