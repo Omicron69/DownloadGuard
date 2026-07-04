@@ -327,4 +327,4 @@ downloadguard/
 
 
 
-*DownloadGuard v3.2 | CI7526 Agentic AI for Cyber Security | Kingston University London 2026*
+*DownloadGuard v3.2 | Kingston University London 2026*
