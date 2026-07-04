@@ -8,9 +8,7 @@
 
 ## Overview
 
-DownloadGuard is a Chrome extension built as a security artefact for CI7526. It provides real-time, multi-layer protection against the most common browser-based cyber threats facing everyday users — malicious file downloads, phishing emails, deceptive hyperlinks, and QR code phishing attacks.
-
-The artefact was produced using **agentic AI co-production** (Claude Sonnet 4.6, Anthropic) and integrates two external AI/security APIs alongside a local keyword detection engine.
+DownloadGuard is a Chrome extension built as a security artefact. It provides real-time, multi-layer protection against the most common browser-based cyber threats facing everyday users — malicious file downloads, phishing emails, deceptive hyperlinks, and QR code phishing attacks.
 
 ---
 
